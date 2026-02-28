@@ -1,9 +1,80 @@
-import { spawn } from "node:child_process";
+import { spawn, execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { RecConfig } from "../types.js";
+
+const execFileAsync = promisify(execFile);
 
 export interface RecordingResult {
   filePath: string;
   duration: number;
+}
+
+interface AudioDeviceInfo {
+  name: string;
+  sampleRate: number;
+  channels: number;
+  isDefaultInput: boolean;
+}
+
+export async function getSystemAudioDevices(): Promise<AudioDeviceInfo[]> {
+  const { stdout } = await execFileAsync("system_profiler", ["SPAudioDataType"]);
+  const devices: AudioDeviceInfo[] = [];
+  let currentName: string | null = null;
+  let currentDevice: Partial<AudioDeviceInfo> = {};
+
+  for (const line of stdout.split("\n")) {
+    const trimmed = line.trimEnd();
+
+    // Device name line: indented exactly 8 spaces, ends with ":"
+    if (/^ {8}\S/.test(trimmed) && trimmed.endsWith(":")) {
+      if (currentName && currentDevice.channels !== undefined) {
+        devices.push({
+          name: currentName,
+          sampleRate: currentDevice.sampleRate ?? 48000,
+          channels: currentDevice.channels,
+          isDefaultInput: currentDevice.isDefaultInput ?? false,
+        });
+      }
+      currentName = trimmed.trim().replace(/:$/, "");
+      currentDevice = {};
+      continue;
+    }
+
+    const kvMatch = trimmed.match(/^\s+(.+?):\s+(.+)$/);
+    if (!kvMatch) continue;
+    const [, key, value] = kvMatch;
+
+    if (key === "Input Channels") {
+      currentDevice.channels = parseInt(value, 10);
+    } else if (key === "Current SampleRate") {
+      currentDevice.sampleRate = parseInt(value, 10);
+    } else if (key === "Default Input Device" && value === "Yes") {
+      currentDevice.isDefaultInput = true;
+    }
+  }
+
+  // Flush last device
+  if (currentName && currentDevice.channels !== undefined) {
+    devices.push({
+      name: currentName,
+      sampleRate: currentDevice.sampleRate ?? 48000,
+      channels: currentDevice.channels,
+      isDefaultInput: currentDevice.isDefaultInput ?? false,
+    });
+  }
+
+  return devices;
+}
+
+export async function getAudioDeviceName(deviceIndex: number): Promise<string | undefined> {
+  const devices = await listAudioDevices();
+  for (const d of devices) {
+    const match = d.match(/^\[(\d+)] (.+)$/);
+    if (match && parseInt(match[1], 10) === deviceIndex) {
+      return match[2];
+    }
+  }
+  return undefined;
 }
 
 export async function listAudioDevices(): Promise<string[]> {
@@ -71,23 +142,37 @@ export async function record(
   config: RecConfig,
   deviceIndexOverride?: number
 ): Promise<RecordingResult> {
+  const deviceIndex = deviceIndexOverride ?? config.recording.deviceIndex;
+
+  const [deviceName, systemDevices] = await Promise.all([
+    getAudioDeviceName(deviceIndex),
+    getSystemAudioDevices(),
+  ]);
+  const deviceInfo = systemDevices.find(d => deviceName?.includes(d.name))
+    ?? systemDevices.find(d => d.isDefaultInput);
+  const sampleRate = deviceInfo?.sampleRate ?? 48000;
+  const channels = deviceInfo?.channels ?? 1;
+
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
-    const deviceIndex = deviceIndexOverride ?? config.recording.deviceIndex;
 
-    const proc = spawn("nice", [
-      "-n", "-10",
-      "ffmpeg",
+    const proc = spawn("ffmpeg", [
+      "-nostats",
+      "-loglevel", "warning",
+      "-thread_queue_size", "1024",
       "-f", "avfoundation",
       "-i", `:${deviceIndex}`,
-      "-acodec", config.recording.acodec,
-      "-ar", String(config.recording.sampleRate),
-      "-ac", String(config.recording.channels),
+      "-ar", String(sampleRate),
+      "-ac", String(channels),
+      "-acodec", "pcm_s16le",
       "-y",
       outputPath,
     ], {
-      stdio: ["pipe", "pipe", "pipe"],
+      stdio: ["pipe", "ignore", "pipe"],
     });
+
+    // Drain stderr to prevent pipe backpressure from blocking ffmpeg
+    proc.stderr!.resume();
 
     let stopped = false;
 
