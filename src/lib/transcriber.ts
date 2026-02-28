@@ -13,11 +13,7 @@ export async function transcribe(
   languageOverride?: string
 ): Promise<string> {
   const language = languageOverride || config.transcription.language;
-
-  if (config.transcription.provider === "openai") {
-    return transcribeOpenAI(audioPath, language);
-  }
-  return transcribeLocal(audioPath, config.transcription.model, language);
+  return transcribeOpenAI(audioPath, language);
 }
 
 async function convertToWhisperFormat(audioPath: string): Promise<string> {
@@ -57,24 +53,3 @@ async function transcribeOpenAI(
   }
 }
 
-async function transcribeLocal(
-  audioPath: string,
-  model: string,
-  language: string
-): Promise<string> {
-  const args = [
-    "run",
-    "--with", "faster-whisper-cli",
-    "faster-whisper",
-    audioPath,
-    "--model", model,
-  ];
-  if (language && language !== "auto") {
-    args.push("--language", language);
-  }
-
-  const { stdout } = await execFileAsync("uv", args, {
-    maxBuffer: 10 * 1024 * 1024,
-  });
-  return stdout.trim();
-}

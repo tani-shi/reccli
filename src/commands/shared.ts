@@ -25,7 +25,7 @@ export async function processRecording(
   languageOverride?: string
 ): Promise<void> {
   // Pre-check: API key
-  if (config.transcription.provider === "openai" && !process.env.OPENAI_API_KEY) {
+  if (!process.env.OPENAI_API_KEY) {
     console.error(
       chalk.red("OPENAI_API_KEY is not set. Set it before transcribing:\n  export OPENAI_API_KEY='sk-...'")
     );

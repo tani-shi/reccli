@@ -4,7 +4,6 @@ export interface RecConfig {
     deviceIndex: number;
   };
   transcription: {
-    provider: "openai" | "local-whisper";
     model: string;
     language: string;
   };
@@ -23,7 +22,6 @@ export const DEFAULT_CONFIG: Omit<RecConfig, "workspacePath"> = {
     deviceIndex: 0,
   },
   transcription: {
-    provider: "openai",
     model: "whisper-1",
     language: "ja",
   },

@@ -58,7 +58,6 @@ export function buildConfig(
   workspacePath: string,
   overrides: Partial<{
     language: string;
-    provider: "openai" | "local-whisper";
     deviceIndex: number;
   }> = {}
 ): RecConfig {
@@ -68,11 +67,6 @@ export function buildConfig(
   };
   if (overrides.language !== undefined) {
     config.transcription.language = overrides.language;
-  }
-  if (overrides.provider !== undefined) {
-    config.transcription.provider = overrides.provider;
-    config.transcription.model =
-      overrides.provider === "openai" ? "whisper-1" : "medium";
   }
   if (overrides.deviceIndex !== undefined) {
     config.recording.deviceIndex = overrides.deviceIndex;

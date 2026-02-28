@@ -46,16 +46,8 @@ export async function initCommand(
     const language = await rl.question("Language (ja/en/auto) [ja]: ");
     const lang = language.trim() || "ja";
 
-    // Provider
-    const providerInput = await rl.question(
-      "Transcription provider (openai/local-whisper) [openai]: "
-    );
-    const provider = (providerInput.trim() || "openai") as
-      | "openai"
-      | "local-whisper";
-
     // OpenAI API key check
-    if (provider === "openai" && !process.env.OPENAI_API_KEY) {
+    if (!process.env.OPENAI_API_KEY) {
       console.log(
         "\nWarning: OPENAI_API_KEY is not set. Set it before using rec record."
       );
@@ -85,7 +77,6 @@ export async function initCommand(
     // Save config
     const config = buildConfig(workspacePath, {
       language: lang,
-      provider,
       deviceIndex,
     });
     await saveConfig(config);
