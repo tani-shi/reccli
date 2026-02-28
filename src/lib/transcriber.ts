@@ -22,10 +22,12 @@ async function convertToWhisperFormat(audioPath: string): Promise<string> {
     `rec-whisper-${Date.now()}.wav`
   );
   await execFileAsync("ffmpeg", [
+    "-nostdin",
+    "-threads", "0",
     "-i", audioPath,
+    "-ac", "1",
     "-acodec", "pcm_s16le",
     "-ar", "16000",
-    "-ac", "1",
     "-y",
     tmpFile,
   ]);
