@@ -4,8 +4,9 @@ import { spawn as nodeSpawn } from "node:child_process";
 export async function claudePrompt(
   prompt: string,
   workspacePath: string
-): Promise<string> {
+): Promise<{ result: string; sessionId: string }> {
   let result = "";
+  let sessionId = "";
   for await (const message of query({
     prompt,
     options: {
@@ -15,6 +16,9 @@ export async function claudePrompt(
       settingSources: ["project"],
     },
   })) {
+    if (message.session_id) {
+      sessionId = message.session_id;
+    }
     if ("result" in message) {
       result = message.result;
     }
@@ -22,14 +26,16 @@ export async function claudePrompt(
   if (!result) {
     throw new Error("No response from Claude");
   }
-  return result;
+  return { result, sessionId };
 }
 
 export async function claudeEdit(
   prompt: string,
-  workspacePath: string
-): Promise<string> {
+  workspacePath: string,
+  sessionId?: string
+): Promise<{ result: string; sessionId: string }> {
   let result = "";
+  let resolvedSessionId = "";
   for await (const message of query({
     prompt,
     options: {
@@ -37,8 +43,12 @@ export async function claudeEdit(
       permissionMode: "acceptEdits",
       allowedTools: ["Read", "Edit", "Write", "Glob", "Grep"],
       settingSources: ["project"],
+      ...(sessionId ? { resume: sessionId } : {}),
     },
   })) {
+    if (message.session_id) {
+      resolvedSessionId = message.session_id;
+    }
     if ("result" in message) {
       result = message.result;
     }
@@ -46,7 +56,7 @@ export async function claudeEdit(
   if (!result) {
     throw new Error("No response from Claude");
   }
-  return result;
+  return { result, sessionId: resolvedSessionId };
 }
 
 export function claudePassthrough(

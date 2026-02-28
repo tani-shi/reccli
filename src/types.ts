@@ -19,6 +19,7 @@ export interface RecordMetadata {
   createdAt: string;
   duration: number;
   title: string;
+  sessionId?: string;
 }
 
 export const DEFAULT_CONFIG: Omit<RecConfig, "workspacePath"> = {

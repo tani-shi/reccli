@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import ora from "ora";
 import { ensureConfigExists } from "../lib/config.js";
-import { findRecordById } from "../lib/workspace.js";
+import { findRecordById, saveMetadata } from "../lib/workspace.js";
 import { claudeEdit } from "../lib/claude.js";
 
 export async function editCommand(
@@ -26,10 +26,25 @@ User request: ${prompt}`;
 
   const spinner = ora("Editing...").start();
   try {
-    const result = await claudeEdit(fullPrompt, config.workspacePath);
+    const { result, sessionId } = await claudeEdit(
+      fullPrompt,
+      config.workspacePath,
+      record.metadata.sessionId
+    );
     spinner.succeed("Edit complete.");
+
+    // Update sessionId in metadata
+    if (sessionId) {
+      await saveMetadata(record.dir, { ...record.metadata, sessionId });
+    }
+
     console.log();
     console.log(result);
+
+    if (sessionId) {
+      console.log();
+      console.log(chalk.dim(`Session: ${sessionId}`));
+    }
   } catch (err) {
     spinner.fail("Edit failed.");
     throw err;

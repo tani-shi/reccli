@@ -1,6 +1,5 @@
 import chalk from "chalk";
 import Table from "cli-table3";
-import { format } from "date-fns";
 import { ensureConfigExists } from "../lib/config.js";
 import { listRecords } from "../lib/workspace.js";
 
@@ -28,7 +27,6 @@ export async function listCommand(options: {
   const table = new Table({
     head: [
       chalk.bold("ID"),
-      chalk.bold("Date"),
       chalk.bold("Duration"),
       chalk.bold("Title"),
     ],
@@ -36,11 +34,9 @@ export async function listCommand(options: {
   });
 
   for (const { metadata } of records) {
-    const date = format(new Date(metadata.createdAt), "yyyy-MM-dd HH:mm");
     const dur = `${metadata.duration}s`;
-    // Show a short ID prefix for display
     const shortId = metadata.id.slice(0, 20);
-    table.push([shortId, date, dur, metadata.title]);
+    table.push([shortId, dur, metadata.title]);
   }
 
   console.log(table.toString());

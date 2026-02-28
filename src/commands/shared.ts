@@ -50,6 +50,7 @@ export async function processRecording(
   const summarySpinner = ora("Generating summary...").start();
   let summary: string;
   let title: string;
+  let sessionId: string;
   try {
     const prompt = `You have the following transcript of an audio recording. Do two things:
 
@@ -59,8 +60,9 @@ export async function processRecording(
 Transcript:
 ${transcript}`;
 
-    const result = await claudePrompt(prompt, config.workspacePath);
-    const lines = result.trim().split("\n");
+    const response = await claudePrompt(prompt, config.workspacePath);
+    sessionId = response.sessionId;
+    const lines = response.result.trim().split("\n");
     title = lines[lines.length - 1].trim();
     summary = lines.slice(0, -1).join("\n").trim();
 
@@ -95,6 +97,7 @@ ${transcript}`;
     createdAt: createdAt.toISOString(),
     duration,
     title,
+    sessionId: sessionId || undefined,
   });
 
   console.log(chalk.green(`\nSaved as: ${id}`));
@@ -108,6 +111,12 @@ ${transcript}`;
   // Guide for adjustment
   console.log(chalk.dim(`To adjust, run:`));
   console.log(chalk.dim(`  rec edit ${id} "your instructions here"`));
+
+  // Show Claude Code session ID
+  if (sessionId) {
+    console.log();
+    console.log(chalk.dim(`Session: ${sessionId}`));
+  }
 }
 
 /**
