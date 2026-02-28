@@ -1,0 +1,32 @@
+{
+  "name": "reccli",
+  "version": "0.1.0",
+  "description": "Record, transcribe, and summarize audio from the terminal",
+  "type": "module",
+  "bin": {
+    "rec": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.62",
+    "chalk": "^5.4.0",
+    "cli-table3": "^0.6.0",
+    "commander": "^13.0.0",
+    "date-fns": "^4.0.0",
+    "openai": "^4.80.0",
+    "ora": "^8.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0"
+  }
+}
