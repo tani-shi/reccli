@@ -13,7 +13,7 @@ export async function transcribe(
   languageOverride?: string
 ): Promise<string> {
   const language = languageOverride || config.transcription.language;
-  return transcribeOpenAI(audioPath, language);
+  return transcribeOpenAI(audioPath, language, config.transcription.model);
 }
 
 async function convertToWhisperFormat(audioPath: string): Promise<string> {
@@ -36,7 +36,8 @@ async function convertToWhisperFormat(audioPath: string): Promise<string> {
 
 async function transcribeOpenAI(
   audioPath: string,
-  language: string
+  language: string,
+  model: string
 ): Promise<string> {
   const { default: OpenAI } = await import("openai");
   const client = new OpenAI();
@@ -45,7 +46,7 @@ async function transcribeOpenAI(
   try {
     const file = fs.createReadStream(convertedPath);
     const response = await client.audio.transcriptions.create({
-      model: "whisper-1",
+      model,
       file,
       ...(language && language !== "auto" ? { language } : {}),
     });
